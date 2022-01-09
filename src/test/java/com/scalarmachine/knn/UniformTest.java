@@ -2,13 +2,16 @@ package com.scalarmachine.knn;
 
 import com.github.jelmerk.knn.DistanceFunctions;
 import com.github.jelmerk.knn.Item;
+import com.github.jelmerk.knn.SearchResult;
 import com.github.jelmerk.knn.hnsw.HnswIndex;
 import jk.tree.FloatKDTree;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -16,6 +19,8 @@ public final class UniformTest {
     public static final int DIM = 10;
     public static final int N = 100000;
     public static final int K = 200;
+    public static final int RECALL_K = K;
+    public static final int TRIES = 3;
 
     public static void main(String[] args) {
         ArrayList<Word> words = getWords();
@@ -25,17 +30,33 @@ public final class UniformTest {
 
         Collections.shuffle(words, new Random(1234));
 
+        int good = 0;
+        int bad = 0;
         for (int i = 0; i < 1000; i++) {
             Word word = words.get(i);
-            hnswIndex.findNearest(word.vector(), K);
-            tree.nearestNeighbours(word.vector(), K);
+            Set<Integer> set = new HashSet<>();
+            // for (FloatKDTree.SearchResult<Word> res : tree.nearestNeighbours(word.vector(), K)) {
+            //     set.add(res.payload.id());
+            // }
+            for (SearchResult<Word, Float> res : hnswIndex.findNearest(word.vector(), K)) {
+                set.add(res.item().id());
+            }
+            for (FloatKDTree.SearchResult<Word> res : tree.nearestNeighbours(word.vector(), RECALL_K)) {
+                if (set.contains(res.payload.id())) {
+                    good += 1;
+                } else {
+                    bad += 1;
+                }
+            }
         }
+        System.out.println("good bad = " + good + ", " + bad);
+        System.out.println("recall@" + RECALL_K + " = " + (good * 1.0 / (good + bad)));
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < TRIES; i++) {
             queryKDTree(words, tree);
         }
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < TRIES; i++) {
             queryHnsw(words, hnswIndex);
         }
     }
@@ -80,9 +101,9 @@ public final class UniformTest {
         long duration;
         HnswIndex<Integer, float[], Word, Float> hnswIndex = HnswIndex
             .newBuilder(DIM, DistanceFunctions.FLOAT_MANHATTAN_DISTANCE, words.size())
-            .withM(20)
+            .withM(8)
             .withEf(200)
-            .withEfConstruction(200)
+            .withEfConstruction(32)
             .build();
 
         start = System.currentTimeMillis();
@@ -95,7 +116,7 @@ public final class UniformTest {
         end = System.currentTimeMillis();
         duration = end - start;
 
-        System.out.printf("Creating index with %d words took %d millis which is %d minutes.%n", hnswIndex.size(), duration, MILLISECONDS.toMinutes(duration));
+        System.out.printf("Creating index with %d words took %d millis which is %d seconds.%n", hnswIndex.size(), duration, MILLISECONDS.toSeconds(duration));
         return hnswIndex;
     }
 
@@ -114,7 +135,7 @@ public final class UniformTest {
         end = System.currentTimeMillis();
         duration = end - start;
 
-        System.out.printf("Creating index with %d words took %d millis which is %d minutes.%n", tree.size(), duration, MILLISECONDS.toMinutes(duration));
+        System.out.printf("Creating index with %d words took %d millis which is %d seconds.%n", tree.size(), duration, MILLISECONDS.toSeconds(duration));
         return tree;
     }
 
