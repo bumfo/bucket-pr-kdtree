@@ -1,0 +1,11 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+dependencies {
+    // https://mvnrepository.com/artifact/com.github.jelmerk/hnswlib-core
+    implementation group: 'com.github.jelmerk', name: 'hnswlib-core', version: '1.0.0'
+}
