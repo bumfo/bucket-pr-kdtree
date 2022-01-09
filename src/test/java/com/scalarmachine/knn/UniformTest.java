@@ -16,13 +16,16 @@ import java.util.Set;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public final class UniformTest {
-    public static final int DIM = 10;
+    public static final int DIM = 32;
     public static final int N = 100000;
     public static final int K = 50;
     public static final int EF = K * 2;
-    public static final int RECALL_K = 10;
+    public static final int RECALL_K = K;
     public static final int TRIES = 3;
     public static final long SEED = 1234;
+
+    public static final int M = 32;
+    public static final int EF_CONSTRUCTION = 64;
 
     public static void main(String[] args) {
         ArrayList<Word> words = getWords();
@@ -103,8 +106,8 @@ public final class UniformTest {
         long duration;
         HnswIndex<Integer, float[], Word, Float> hnswIndex = HnswIndex
             .newBuilder(DIM, DistanceFunctions.FLOAT_MANHATTAN_DISTANCE, words.size())
-            .withM(8)
-            .withEfConstruction(16)
+            .withM(M)
+            .withEfConstruction(EF_CONSTRUCTION)
             .withEf(EF)
             .build();
 
