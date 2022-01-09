@@ -18,9 +18,11 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 public final class UniformTest {
     public static final int DIM = 10;
     public static final int N = 100000;
-    public static final int K = 200;
-    public static final int RECALL_K = K;
+    public static final int K = 50;
+    public static final int EF = K * 2;
+    public static final int RECALL_K = 10;
     public static final int TRIES = 3;
+    public static final long SEED = 1234;
 
     public static void main(String[] args) {
         ArrayList<Word> words = getWords();
@@ -28,7 +30,7 @@ public final class UniformTest {
         FloatKDTree<Word> tree = getTree(words);
         HnswIndex<Integer, float[], Word, Float> hnswIndex = getHnsw(words);
 
-        Collections.shuffle(words, new Random(1234));
+        Collections.shuffle(words, new Random(SEED + 1));
 
         int good = 0;
         int bad = 0;
@@ -102,8 +104,8 @@ public final class UniformTest {
         HnswIndex<Integer, float[], Word, Float> hnswIndex = HnswIndex
             .newBuilder(DIM, DistanceFunctions.FLOAT_MANHATTAN_DISTANCE, words.size())
             .withM(8)
-            .withEf(200)
-            .withEfConstruction(32)
+            .withEfConstruction(16)
+            .withEf(EF)
             .build();
 
         start = System.currentTimeMillis();
@@ -140,11 +142,13 @@ public final class UniformTest {
     }
 
     private static ArrayList<Word> getWords() {
+        Random rnd = new Random(SEED);
+
         ArrayList<Word> words = new ArrayList<>(N);
         for (int i = 0; i < N; i++) {
             float[] vector = new float[DIM];
             for (int j = 0; j < DIM; j++) {
-                vector[j] = (float) Math.random();
+                vector[j] = rnd.nextFloat();
             }
             words.add(new Word(i, vector));
         }
